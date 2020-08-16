@@ -15,7 +15,7 @@ func main() {
 
 		// Cache GET requests only.
 		if r.Method != http.MethodGet {
-			_, err := proxyAndRespond(upstreamURI, w, r)
+			_, _, err := proxyAndRespond(upstreamURI, w, r)
 			if err != nil {
 				log.Println("Error in req: ", err)
 			}
@@ -26,20 +26,21 @@ func main() {
 		data, ok := inMemStore.get(upstreamURI)
 		if ok {
 			log.Println("Cache hit! URI = ", upstreamURI)
-			w.Write(data)
+			addHeaders(w, data.headers)
+			w.Write(data.body)
 			return
 		}
 
 		log.Println("Cache miss! URI = ", upstreamURI)
 
-		content, err := proxyAndRespond(upstreamURI, w, r)
+		content, headers, err := proxyAndRespond(upstreamURI, w, r)
 		if err != nil {
 			log.Print("Error in GET req: ", err)
 			return
 		}
 
 		// Update in-memory cache
-		inMemStore.set(upstreamURI, content)
+		inMemStore.set(upstreamURI, content, headers)
 	})
 
 	log.Println("Server running on localhost:8080")
